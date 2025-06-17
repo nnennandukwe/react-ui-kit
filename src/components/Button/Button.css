@@ -1,0 +1,52 @@
+.btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn--primary {
+  background-color: #0066cc;
+  color: white;
+  border-color: #0066cc;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background-color: #0052a3;
+  border-color: #0052a3;
+}
+
+.btn--primary:active:not(:disabled) {
+  background-color: #004080;
+  border-color: #004080;
+}
+
+.btn--secondary {
+  background-color: transparent;
+  color: #0066cc;
+  border-color: #0066cc;
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background-color: #f0f7ff;
+}
+
+.btn--secondary:active:not(:disabled) {
+  background-color: #e0efff;
+}
+
+.btn--disabled,
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.2);
+}
