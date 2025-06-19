@@ -1,87 +1,282 @@
+/* Modal Component Styles */
+
+:root {
+  --modal-z-index: 1000;
+  --modal-overlay-bg: rgba(0, 0, 0, 0.5);
+  --modal-bg: white;
+  --modal-border-radius: 8px;
+  --modal-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --modal-max-width-sm: 400px;
+  --modal-max-width-md: 600px;
+  --modal-max-width-lg: 800px;
+  --modal-animation-duration: 200ms;
+  --modal-animation-easing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Overlay */
 .modal-overlay {
   position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--modal-z-index);
+  background-color: var(--modal-overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease-out;
+  padding: 16px;
+  animation: modal-overlay-enter var(--modal-animation-duration) var(--modal-animation-easing);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.modal-overlay--closing {
+  animation: modal-overlay-exit var(--modal-animation-duration) var(--modal-animation-easing);
 }
 
+/* Modal container */
 .modal {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  overflow: hidden;
+  background-color: var(--modal-bg);
+  border-radius: var(--modal-border-radius);
+  box-shadow: var(--modal-shadow);
+  max-height: calc(100vh - 32px);
+  width: 100%;
   display: flex;
   flex-direction: column;
-  animation: slideIn 0.2s ease-out;
+  position: relative;
+  animation: modal-enter var(--modal-animation-duration) var(--modal-animation-easing);
+  outline: none;
 }
 
-@keyframes slideIn {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+/* Size variants */
+.modal--small {
+  max-width: var(--modal-max-width-sm);
 }
 
-.modal-header {
+.modal--medium {
+  max-width: var(--modal-max-width-md);
+}
+
+.modal--large {
+  max-width: var(--modal-max-width-lg);
+}
+
+.modal--fullscreen {
+  max-width: none;
+  max-height: none;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  margin: 0;
+}
+
+/* Header */
+.modal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
-  border-bottom: 1px solid #e5e5e5;
+  padding: 20px 24px 0;
+  flex-shrink: 0;
 }
 
-.modal-title {
+.modal__title {
   margin: 0;
-  font-size: 18px;
+  font-size: 1.25rem;
   font-weight: 600;
-  color: #333;
+  color: #111827;
+  line-height: 1.5;
 }
 
-.modal-close {
+.modal__close-button {
   background: none;
   border: none;
   font-size: 24px;
   line-height: 1;
-  color: #666;
   cursor: pointer;
   padding: 4px;
-  margin: -4px -4px -4px 8px;
+  margin: -4px;
+  color: #6b7280;
   border-radius: 4px;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
 }
 
-.modal-close:hover {
-  background-color: #f5f5f5;
-  color: #333;
+.modal__close-button:hover {
+  background-color: #f3f4f6;
+  color: #374151;
 }
 
-.modal-close:focus-visible {
-  outline: 2px solid #0066cc;
-  outline-offset: 2px;
+.modal__close-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #3b82f6;
 }
 
-.modal-content {
-  padding: 24px;
+.modal__close-button:active {
+  background-color: #e5e7eb;
+}
+
+/* Content */
+.modal__content {
+  padding: 20px 24px 24px;
   overflow-y: auto;
   flex: 1;
+}
+
+/* When there's no header */
+.modal:not(:has(.modal__header)) .modal__content {
+  padding-top: 24px;
+}
+
+/* Animations */
+@keyframes modal-overlay-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-overlay-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modal-exit {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 8px;
+    align-items: flex-end;
+  }
+  
+  .modal {
+    max-height: 90vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    animation: modal-enter-mobile var(--modal-animation-duration) var(--modal-animation-easing);
+  }
+  
+  .modal--fullscreen {
+    height: 100vh;
+    border-radius: 0;
+  }
+  
+  .modal__header {
+    padding: 16px 20px 0;
+  }
+  
+  .modal__content {
+    padding: 16px 20px 20px;
+  }
+  
+  @keyframes modal-enter-mobile {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .modal {
+    border: 2px solid #000;
+  }
+  
+  .modal__close-button {
+    border: 1px solid #6b7280;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal {
+    animation: none;
+  }
+  
+  .modal__close-button {
+    transition: none;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --modal-overlay-bg: rgba(0, 0, 0, 0.75);
+    --modal-bg: #1f2937;
+  }
+  
+  .modal__title {
+    color: #f9fafb;
+  }
+  
+  .modal__close-button {
+    color: #9ca3af;
+  }
+  
+  .modal__close-button:hover {
+    background-color: #374151;
+    color: #d1d5db;
+  }
+  
+  .modal__close-button:active {
+    background-color: #4b5563;
+  }
+}
+
+/* Focus management */
+.modal:focus {
+  outline: none;
+}
+
+/* Scrollbar styling for modal content */
+.modal__content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal__content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal__content::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 3px;
+}
+
+.modal__content::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
 }

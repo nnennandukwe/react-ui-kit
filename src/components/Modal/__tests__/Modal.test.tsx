@@ -2,140 +2,315 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Modal } from '../Modal';
 
+// Mock createPortal to render in the same container
+jest.mock('react-dom', () => ({
+  ...jest.requireActual('react-dom'),
+  createPortal: (children: React.ReactNode) => children,
+}));
+
 describe('Modal', () => {
   const defaultProps = {
     isOpen: true,
     onClose: jest.fn(),
-    children: 'Modal content',
+    children: <div>Modal content</div>,
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset body styles
+    document.body.style.overflow = '';
   });
 
-  it('renders nothing when closed', () => {
-    render(<Modal {...defaultProps} isOpen={false} />);
-    expect(screen.queryByText('Modal content')).not.toBeInTheDocument();
-  });
+  describe('Basic Rendering', () => {
+    it('renders when open', () => {
+      render(<Modal {...defaultProps} />);
+      expect(screen.getByText('Modal content')).toBeInTheDocument();
+    });
 
-  it('renders modal content when open', () => {
-    render(<Modal {...defaultProps} />);
-    expect(screen.getByText('Modal content')).toBeInTheDocument();
-  });
+    it('does not render when closed', () => {
+      render(<Modal {...defaultProps} isOpen={false} />);
+      expect(screen.queryByText('Modal content')).not.toBeInTheDocument();
+    });
 
-  it('renders with title when provided', () => {
-    render(<Modal {...defaultProps} title="Test Modal" />);
-    expect(screen.getByText('Test Modal')).toBeInTheDocument();
-    expect(screen.getByRole('dialog')).toHaveAttribute('aria-labelledby', 'modal-title');
-  });
+    it('renders with title', () => {
+      render(<Modal {...defaultProps} title="Test Modal" />);
+      expect(screen.getByText('Test Modal')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toHaveAttribute('aria-labelledby', 'modal-title');
+    });
 
-  it('renders without title when not provided', () => {
-    render(<Modal {...defaultProps} />);
-    expect(screen.queryByText('modal-title')).not.toBeInTheDocument();
-    expect(screen.getByRole('dialog')).not.toHaveAttribute('aria-labelledby');
-  });
-
-  it('calls onClose when close button is clicked', () => {
-    render(<Modal {...defaultProps} title="Test Modal" />);
-    const closeButton = screen.getByLabelText('Close modal');
-    fireEvent.click(closeButton);
-    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls onClose when Escape key is pressed', () => {
-    render(<Modal {...defaultProps} />);
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not call onClose on Escape when closeOnEscape is false', () => {
-    render(<Modal {...defaultProps} closeOnEscape={false} />);
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(defaultProps.onClose).not.toHaveBeenCalled();
-  });
-
-  it('does not call onClose when overlay is clicked', () => {
-    render(<Modal {...defaultProps} />);
-    const overlay = screen.getByRole('dialog');
-    fireEvent.click(overlay);
-    expect(defaultProps.onClose).not.toHaveBeenCalled();
-  });
-
-  it('does not call onClose when modal content is clicked', () => {
-    render(<Modal {...defaultProps} />);
-    const content = screen.getByText('Modal content');
-    fireEvent.click(content);
-    expect(defaultProps.onClose).not.toHaveBeenCalled();
-  });
-
-  it('applies custom className', () => {
-    render(<Modal {...defaultProps} className="custom-modal" />);
-    expect(document.querySelector('.modal')).toHaveClass('custom-modal');
-  });
-
-  it('applies custom overlayClassName', () => {
-    render(<Modal {...defaultProps} overlayClassName="custom-overlay" />);
-    expect(screen.getByRole('dialog')).toHaveClass('custom-overlay');
-  });
-
-  it('sets body overflow to hidden when open', () => {
-    const { rerender } = render(<Modal {...defaultProps} isOpen={false} />);
-    expect(document.body.style.overflow).toBe('');
-
-    rerender(<Modal {...defaultProps} isOpen={true} />);
-    expect(document.body.style.overflow).toBe('hidden');
-  });
-
-  it('restores body overflow when closed', () => {
-    const { rerender } = render(<Modal {...defaultProps} isOpen={true} />);
-    expect(document.body.style.overflow).toBe('hidden');
-
-    rerender(<Modal {...defaultProps} isOpen={false} />);
-    expect(document.body.style.overflow).toBe('');
-  });
-
-  it('focuses first focusable element when opened', async () => {
-    render(
-      <Modal {...defaultProps}>
-        <button>First button</button>
-        <button>Second button</button>
-      </Modal>
-    );
-
-    await waitFor(() => {
-      const firstButton = screen.getByText('First button');
-      expect(document.activeElement).toBe(firstButton);
+    it('renders without title', () => {
+      render(<Modal {...defaultProps} />);
+      expect(screen.queryByRole('heading')).not.toBeInTheDocument();
     });
   });
 
-  it('renders in a portal', () => {
-    render(<Modal {...defaultProps} />);
-    const modal = screen.getByRole('dialog');
-    expect(modal.parentElement).toBe(document.body);
+  describe('Accessibility', () => {
+    it('has correct ARIA attributes', () => {
+      render(<Modal {...defaultProps} title="Test Modal" />);
+      const dialog = screen.getByRole('dialog');
+      
+      expect(dialog).toHaveAttribute('aria-modal', 'true');
+      expect(dialog).toHaveAttribute('aria-labelledby', 'modal-title');
+    });
+
+    it('supports custom aria-label', () => {
+      render(<Modal {...defaultProps} aria-label="Custom modal" />);
+      expect(screen.getByRole('dialog')).toHaveAttribute('aria-label', 'Custom modal');
+    });
+
+    it('supports aria-describedby', () => {
+      render(<Modal {...defaultProps} aria-describedby="modal-description" />);
+      expect(screen.getByRole('dialog')).toHaveAttribute('aria-describedby', 'modal-description');
+    });
+
+    it('prevents body scroll by default', () => {
+      render(<Modal {...defaultProps} />);
+      expect(document.body.style.overflow).toBe('hidden');
+    });
+
+    it('allows body scroll when preventBodyScroll is false', () => {
+      render(<Modal {...defaultProps} preventBodyScroll={false} />);
+      expect(document.body.style.overflow).toBe('');
+    });
+
+    it('restores body scroll when unmounted', () => {
+      const { unmount } = render(<Modal {...defaultProps} />);
+      expect(document.body.style.overflow).toBe('hidden');
+      
+      unmount();
+      expect(document.body.style.overflow).toBe('');
+    });
   });
 
-  it('has proper ARIA attributes', () => {
-    render(<Modal {...defaultProps} title="Accessible Modal" />);
-    const dialog = screen.getByRole('dialog');
-    
-    expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(dialog).toHaveAttribute('aria-labelledby', 'modal-title');
+  describe('Close Functionality', () => {
+    it('calls onClose when close button is clicked', async () => {
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      
+      render(<Modal {...defaultProps} onClose={onClose} title="Test" />);
+      
+      await user.click(screen.getByLabelText('Close modal'));
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls onClose when Escape key is pressed', () => {
+      const onClose = jest.fn();
+      render(<Modal {...defaultProps} onClose={onClose} />);
+      
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not close on Escape when closeOnEscape is false', () => {
+      const onClose = jest.fn();
+      render(<Modal {...defaultProps} onClose={onClose} closeOnEscape={false} />);
+      
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('calls onClose when overlay is clicked', async () => {
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      
+      render(<Modal {...defaultProps} onClose={onClose} data-testid="modal" />);
+      
+      const overlay = screen.getByTestId('modal-overlay');
+      await user.click(overlay);
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not close when modal content is clicked', async () => {
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      
+      render(<Modal {...defaultProps} onClose={onClose} />);
+      
+      await user.click(screen.getByText('Modal content'));
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('does not close on overlay click when closeOnOverlayClick is false', async () => {
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      
+      render(
+        <Modal 
+          {...defaultProps} 
+          onClose={onClose} 
+          closeOnOverlayClick={false}
+          data-testid="modal"
+        />
+      );
+      
+      const overlay = screen.getByTestId('modal-overlay');
+      await user.click(overlay);
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('hides close button when showCloseButton is false', () => {
+      render(<Modal {...defaultProps} title="Test" showCloseButton={false} />);
+      expect(screen.queryByLabelText('Close modal')).not.toBeInTheDocument();
+    });
+
+    it('renders custom close button content', () => {
+      render(
+        <Modal 
+          {...defaultProps} 
+          title="Test" 
+          closeButtonContent={<span>Close</span>}
+        />
+      );
+      expect(screen.getByText('Close')).toBeInTheDocument();
+    });
   });
 
-  it('handles multiple modals with separate onClose handlers', () => {
-    const onClose1 = jest.fn();
-    const onClose2 = jest.fn();
+  describe('Size Variants', () => {
+    it('applies medium size by default', () => {
+      render(<Modal {...defaultProps} data-testid="modal" />);
+      expect(screen.getByTestId('modal')).toHaveClass('modal--medium');
+    });
 
-    const { rerender } = render(
-      <>
-        <Modal isOpen={true} onClose={onClose1}>Modal 1</Modal>
-        <Modal isOpen={true} onClose={onClose2}>Modal 2</Modal>
-      </>
-    );
+    it('applies small size', () => {
+      render(<Modal {...defaultProps} size="small" data-testid="modal" />);
+      expect(screen.getByTestId('modal')).toHaveClass('modal--small');
+    });
 
-    fireEvent.keyDown(document, { key: 'Escape' });
-    
-    expect(onClose1).toHaveBeenCalled();
-    expect(onClose2).toHaveBeenCalled();
+    it('applies large size', () => {
+      render(<Modal {...defaultProps} size="large" data-testid="modal" />);
+      expect(screen.getByTestId('modal')).toHaveClass('modal--large');
+    });
+
+    it('applies fullscreen size', () => {
+      render(<Modal {...defaultProps} size="fullscreen" data-testid="modal" />);
+      expect(screen.getByTestId('modal')).toHaveClass('modal--fullscreen');
+    });
+  });
+
+  describe('Custom Styling', () => {
+    it('applies custom className', () => {
+      render(<Modal {...defaultProps} className="custom-modal" data-testid="modal" />);
+      expect(screen.getByTestId('modal')).toHaveClass('custom-modal');
+    });
+
+    it('applies custom overlay className', () => {
+      render(
+        <Modal 
+          {...defaultProps} 
+          overlayClassName="custom-overlay" 
+          data-testid="modal"
+        />
+      );
+      expect(screen.getByTestId('modal-overlay')).toHaveClass('custom-overlay');
+    });
+  });
+
+  describe('Focus Management', () => {
+    it('focuses first focusable element when opened', async () => {
+      render(
+        <Modal {...defaultProps}>
+          <button>First button</button>
+          <button>Second button</button>
+        </Modal>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('First button')).toHaveFocus();
+      });
+    });
+
+    it('traps focus within modal', async () => {
+      const user = userEvent.setup();
+      
+      render(
+        <Modal {...defaultProps} title="Test">
+          <button>First button</button>
+          <button>Second button</button>
+        </Modal>
+      );
+
+      const closeButton = screen.getByLabelText('Close modal');
+      const firstButton = screen.getByText('First button');
+      const secondButton = screen.getByText('Second button');
+
+      // Tab forward through elements
+      await user.tab();
+      expect(firstButton).toHaveFocus();
+
+      await user.tab();
+      expect(secondButton).toHaveFocus();
+
+      await user.tab();
+      expect(closeButton).toHaveFocus();
+
+      // Tab should wrap to first element
+      await user.tab();
+      expect(firstButton).toHaveFocus();
+
+      // Shift+Tab should go backwards
+      await user.tab({ shift: true });
+      expect(closeButton).toHaveFocus();
+    });
+  });
+
+  describe('Event Handling', () => {
+    it('handles keyboard events correctly', () => {
+      const onClose = jest.fn();
+      render(<Modal {...defaultProps} onClose={onClose} />);
+
+      // Test various keys
+      fireEvent.keyDown(document, { key: 'Enter' });
+      expect(onClose).not.toHaveBeenCalled();
+
+      fireEvent.keyDown(document, { key: 'Space' });
+      expect(onClose).not.toHaveBeenCalled();
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('prevents event propagation on escape', () => {
+      const onClose = jest.fn();
+      const mockPreventDefault = jest.fn();
+      
+      render(<Modal {...defaultProps} onClose={onClose} />);
+
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      event.preventDefault = mockPreventDefault;
+      
+      document.dispatchEvent(event);
+      
+      expect(mockPreventDefault).toHaveBeenCalled();
+      expect(onClose).toHaveBeenCalled();
+    });
+  });
+
+  describe('Data Attributes', () => {
+    it('applies data-testid', () => {
+      render(<Modal {...defaultProps} data-testid="test-modal" />);
+      expect(screen.getByTestId('test-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('test-modal-overlay')).toBeInTheDocument();
+      expect(screen.getByTestId('test-modal-close')).toBeInTheDocument();
+    });
+
+    it('passes through additional props', () => {
+      render(<Modal {...defaultProps} data-custom="value" data-testid="modal" />);
+      expect(screen.getByTestId('modal')).toHaveAttribute('data-custom', 'value');
+    });
+  });
+
+  describe('Animation', () => {
+    it('applies animation duration', () => {
+      render(
+        <Modal 
+          {...defaultProps} 
+          animationDuration={300} 
+          data-testid="modal"
+        />
+      );
+      
+      const overlay = screen.getByTestId('modal-overlay');
+      expect(overlay).toHaveStyle('animation-duration: 300ms');
+    });
   });
 });
